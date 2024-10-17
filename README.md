@@ -36,3 +36,19 @@ To test the agent, use the `snmpget` command.
    
    The "123456" is the value stored at the OID "1.3.6.1.4.1.5380.1.16.1.1.0" in the SampleMib.
 
+3. **Test Cases:**
+   
+   - **AuthPriv Security Model:** This protocol requires both authentication and privacy (encryption). It uses MD5 for authentication, ensuring that the identity of the sender is verified, and DES (Data Encryption Standard) for encryption, securing the data being transmitted. This combination provides a high level of security for sensitive information.
+
+   ```bash
+    $ snmpget -v3 -n context3 -u user1 -l authPriv -a MD5 -A user1AuthPassword -x DES -X user1PrivPassword 127.0.0.1:4700 1.3.6.1.4.1.5380.1.16.1.1.0
+    $ snmpget -v3 -n context3 -u user2 -l authPriv -a MD5 -A user2AuthPassword -x DES -X user2PrivPassword 127.0.0.1:4700 1.3.6.1.4.1.5380.1.16.1.1.0
+    $ snmpget -v3 -n context3 -u user3 -l authPriv -a MD5 -A user3AuthPassword -x DES -X user3PrivPassword 127.0.0.1:4700 1.3.6.1.4.1.5380.1.16.1.1.0
+   ```
+   - **AuthNoPriv Security Model:** This protocol requires only authentication. It uses MD5 to verify the sender's identity, but does not encrypt the data being transmitted. This is suitable for scenarios where data security is not a primary concern, but sender verification is still important.
+    
+   ```bash
+    $ snmpget -v3 -n context3 -u user1 -l authNoPriv -a MD5 -A user1AuthPassword 127.0.0.1:4700 1.3.6.1.4.1.5380.1.16.1.1.0
+    $ snmpget -v3 -n context3 -u user2 -l authNoPriv -a MD5 -A user2AuthPassword 127.0.0.1:4700 1.3.6.1.4.1.5380.1.16.1.1.0
+    $ snmpget -v3 -n context3 -u user3 -l authNoPriv -a MD5 -A user3AuthPassword 127.0.0.1:4700 1.3.6.1.4.1.5380.1.16.1.1.0
+   ```
