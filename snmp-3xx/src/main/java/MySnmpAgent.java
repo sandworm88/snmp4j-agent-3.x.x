@@ -70,9 +70,9 @@ public class MySnmpAgent {
     
     
     Map<String, List<Object>> securitySettings = Map.of(
-    	    "oSecurityName", List.of("MD5DES"),
-    	    "oAuthPassphrase", List.of("MD5DESAuthPassword"),
-    	    "oPrivPassphrase", List.of("MD5DESPrivPassword"),
+    	    "oSecurityName", List.of("user"),
+    	    "oAuthPassphrase", List.of("userAuthPassword"),
+    	    "oPrivPassphrase", List.of("userPrivPassword"),
     	    "oAuthProtocol", List.of("MD5"),
     	    "oPrivProtocol", List.of("DES")
     	);
@@ -157,26 +157,18 @@ public class MySnmpAgent {
     
     public VacmMIB getCustomViews(MOServer[] moServers) {
         VacmMIB vacm = new VacmMIB(moServers);
-        vacm.addGroup(SecurityModel.SECURITY_MODEL_SNMPv1, new OctetString("cpublic"), new OctetString("v1v2group"),
-                StorageType.nonVolatile);
         vacm.addGroup(SecurityModel.SECURITY_MODEL_SNMPv2c, new OctetString("context3"), new OctetString("v1v2group"),
                 StorageType.nonVolatile);
-        vacm.addGroup(SecurityModel.SECURITY_MODEL_USM, new OctetString("MD5DES"), new OctetString("v3group"),
+        vacm.addGroup(SecurityModel.SECURITY_MODEL_USM, new OctetString("user"), new OctetString("v3group"),
                 StorageType.nonVolatile);
-        vacm.addGroup(SecurityModel.SECURITY_MODEL_USM, new OctetString("SHA"), new OctetString("v3group"),
+        vacm.addGroup(SecurityModel.SECURITY_MODEL_USM, new OctetString("user1"), new OctetString("v3group"),
                 StorageType.nonVolatile);
-        vacm.addGroup(SecurityModel.SECURITY_MODEL_USM, new OctetString("unsec"), new OctetString("v3group"),
+        vacm.addGroup(SecurityModel.SECURITY_MODEL_USM, new OctetString("user2"), new OctetString("v3group"),
                 StorageType.nonVolatile);
-        vacm.addGroup(SecurityModel.SECURITY_MODEL_USM, new OctetString("authUser"), new OctetString("v3group"),
-                StorageType.nonVolatile);
-        vacm.addGroup(SecurityModel.SECURITY_MODEL_TSM, new OctetString("TLSPRIV"), new OctetString("v3group"),
+        vacm.addGroup(SecurityModel.SECURITY_MODEL_USM, new OctetString("user3"), new OctetString("v3group"),
                 StorageType.nonVolatile);
         vacm.addGroup(SecurityModel.SECURITY_MODEL_TSM, new OctetString(""), new OctetString("v3group"),
                 StorageType.nonVolatile);
-
-        vacm.addGroup(SecurityModel.SECURITY_MODEL_USM, new OctetString("v3notify"), new OctetString("v3group"),
-                StorageType.nonVolatile);
-
         vacm.addAccess(new OctetString("v1v2group"), new OctetString("context3"), SecurityModel.SECURITY_MODEL_ANY,
                 SecurityLevel.NOAUTH_NOPRIV, MutableVACM.VACM_MATCH_EXACT, new OctetString("fullReadView"),
                 new OctetString("fullWriteView"), new OctetString("fullNotifyView"), StorageType.nonVolatile);
@@ -203,14 +195,14 @@ public class MySnmpAgent {
         logger.debug("SnmpAgentMain.addUsmUser() setEngineDiscoveryEnabled as true ");
         usm.setEngineDiscoveryEnabled(true);
         
-        UsmUser authUser = new UsmUser(new OctetString("authUser"), AuthMD5.ID, new OctetString("authUser"),PrivDES.ID, new OctetString("authUser"));
-        usm.addUser(authUser.getSecurityName(), usm.getLocalEngineID(), authUser);
+        UsmUser user1 = new UsmUser(new OctetString("user1"), AuthMD5.ID, new OctetString("user1AuthPassword"),PrivDES.ID, new OctetString("user1PrivPassword"));
+        usm.addUser(user1.getSecurityName(), usm.getLocalEngineID(), user1);
         
-        UsmUser MD5DES = new UsmUser(new OctetString("MD5DES"), AuthMD5.ID, new OctetString("MD5DESAuthPassword"),PrivDES.ID, new OctetString("MD5DESPrivPassword"));
-        usm.addUser(MD5DES.getSecurityName(), usm.getLocalEngineID(), MD5DES);
+        UsmUser user2 = new UsmUser(new OctetString("user2"), AuthMD5.ID, new OctetString("user2AuthPassword"),PrivDES.ID, new OctetString("user2PrivPassword"));
+        usm.addUser(user2.getSecurityName(), usm.getLocalEngineID(), user2);
         
-        UsmUser SHAUser = new UsmUser(new OctetString("SHA"), AuthMD5.ID, new OctetString("SHAAuthPassword"),PrivDES.ID, new OctetString("SHAPrivPassword"));
-        usm.addUser(SHAUser.getSecurityName(), usm.getLocalEngineID(), SHAUser);
+        UsmUser user3 = new UsmUser(new OctetString("user3"), AuthMD5.ID, new OctetString("user3AuthPassword"),PrivDES.ID, new OctetString("user3PrivPassword"));
+        usm.addUser(user3.getSecurityName(), usm.getLocalEngineID(), user3);
         
     }
     
@@ -269,9 +261,14 @@ public class MySnmpAgent {
         }
     }
 	
-	// Testing:
-    // 1. snmpget -v3 -n context3 -u MD5DES -l authPriv -a MD5 -A MD5DESAuthPassword -x DES -X MD5DESPrivPassword 127.0.0.1:4700 1.3.6.1.4.1.5380.1.16.1.1.0
-    // 2. snmpget -v3 -n context3 -u authUser -l authPriv -a MD5 -A authUser -x DES -X authUser 127.0.0.1:4700 1.3.6.1.4.1.5380.1.16.1.1.0
+    // Testing:
+    // 1. snmpget -v3 -n context3 -u user1 -l authPriv -a MD5 -A user1AuthPassword -x DES -X user1PrivPassword 127.0.0.1:4700 1.3.6.1.4.1.5380.1.16.1.1.0
+    // 2. snmpget -v3 -n context3 -u user2 -l authPriv -a MD5 -A user2AuthPassword -x DES -X user2PrivPassword 127.0.0.1:4700 1.3.6.1.4.1.5380.1.16.1.1.0
+    // 3. snmpget -v3 -n context3 -u user3 -l authPriv -a MD5 -A user3AuthPassword -x DES -X user3PrivPassword 127.0.0.1:4700 1.3.6.1.4.1.5380.1.16.1.1.0
+    // 4. snmpget -v3 -n context3 -u user1 -l authNoPriv -a MD5 -A user1AuthPassword 127.0.0.1:4700 1.3.6.1.4.1.5380.1.16.1.1.0
+    // 5. snmpget -v3 -n context3 -u user2 -l authNoPriv -a MD5 -A user2AuthPassword 127.0.0.1:4700 1.3.6.1.4.1.5380.1.16.1.1.0
+    // 6. snmpget -v3 -n context3 -u user3 -l authNoPriv -a MD5 -A user3AuthPassword 127.0.0.1:4700 1.3.6.1.4.1.5380.1.16.1.1.0
+	
 	public static void main(String[] args) {  
 		logger.info("This is a test log message.");
 		MySnmpAgent sampleAgent = new MySnmpAgent("udp:127.0.0.1/4700");  
