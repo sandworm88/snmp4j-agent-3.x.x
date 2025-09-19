@@ -54,6 +54,7 @@ public class MySnmpAgent {
     protected Modules modules;
     protected Properties tableSizeLimits;
     protected OctetString context = new OctetString("context3");
+    protected OctetString ownEngineId;
 
     Map<String, List<Object>> securitySettings = Map.of(
             "oSecurityName", List.of("user"),
@@ -85,7 +86,7 @@ public class MySnmpAgent {
         MOInputFactory configurationFactory = null;
         String dhKickstartInfoPath = null;
         EngineBootsCounterFile engineBootsCounterFile = new EngineBootsCounterFile(bootCounterFile);
-        OctetString ownEngineId = engineBootsCounterFile.getEngineId(new OctetString(MPv3.createLocalEngineID()));
+        ownEngineId = engineBootsCounterFile.getEngineId(new OctetString(MPv3.createLocalEngineID()));
         setupAgent(moServers, engineBootsCounterFile, ownEngineId, listenAddress, configurationFactory, dhKickstartInfoPath);
     }
 
@@ -139,7 +140,8 @@ public class MySnmpAgent {
                     new CounterSupport());
 
         } catch (Exception e) {
-            logger.error("Error setting up the agent: ", e);
+            logger.error("Error setting up the agent: " + e);
+            e.printStackTrace();
         }
     }
 
@@ -249,6 +251,18 @@ public class MySnmpAgent {
         }
         try {
             modules.registerMOs(server, null);
+
+            agent.getSnmpCommunityMIB().addSnmpCommunityEntry(
+                    new OctetString("public2public"),
+                    new OctetString("public"),
+                    new OctetString("context3"),
+                    ownEngineId,
+                    new OctetString("context3"),
+                    new OctetString(),
+                    StorageType.nonVolatile);
+
+            System.out.println("communityMIB " + agent.getSnmpCommunityMIB());
+
         } catch (DuplicateRegistrationException drex) {
             logger.error("Duplicate registration: " + drex.getMessage() + "."
                     + " MIB object registration may be incomplete!", drex);
