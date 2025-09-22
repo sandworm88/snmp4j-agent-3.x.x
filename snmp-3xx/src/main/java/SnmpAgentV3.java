@@ -46,30 +46,32 @@ public class SnmpAgentV3 {
     }
     private static final LogAdapter log = LogFactory.getLogger(SnmpAgentV3.class);
 
+    private final OctetString v2security = new OctetString("v2security");
+
     private AgentConfigManager agentConfigManager;
     private DefaultMOServer server;
     private Modules modules;
-
-    private OctetString context = new OctetString("context3");
     private OctetString ownEngineId;
 
     private String address;
     private String community;
+    private String context;
     private String v3user;
     private String v3AuthPassword;
     private String v3PrivPassword;
 
-    public static final SnmpAgentV3 createSnmpAgentV3(String address, String community,
+    public static final SnmpAgentV3 createSnmpAgentV3(String address, String community, String context,
                                                       String v3user, String v3AuthPassword, String v3PrivPassword) {
-        SnmpAgentV3 snmpAgentV3 = new SnmpAgentV3(address, community, v3user, v3AuthPassword, v3PrivPassword);
+        SnmpAgentV3 snmpAgentV3 = new SnmpAgentV3(address, community, context, v3user, v3AuthPassword, v3PrivPassword);
         SNMP4JSettings.setExtensibilityEnabled(true);
         SecurityProtocols.getInstance().addDefaultProtocols();
         return snmpAgentV3;
     }
 
-    private SnmpAgentV3(String address, String community, String v3user, String v3AuthPassword, String v3PrivPassword) {
+    private SnmpAgentV3(String address, String community, String context, String v3user, String v3AuthPassword, String v3PrivPassword) {
         this.address = address;
         this.community = community;
+        this.context = context;
         this.v3user = v3user;
         this.v3AuthPassword = v3AuthPassword;
         this.v3PrivPassword = v3PrivPassword;
@@ -149,14 +151,16 @@ public class SnmpAgentV3 {
         VacmMIB vacm = new VacmMIB(moServers);
 
         vacm.addGroup(SecurityModel.SECURITY_MODEL_SNMPv2c,
-                context,
+                v2security,
                 new OctetString("v1v2group"),
                 StorageType.nonVolatile);
 
-        vacm.addGroup(SecurityModel.SECURITY_MODEL_USM,
-                new OctetString(v3user),
-                new OctetString("v3group"),
-                StorageType.nonVolatile);
+        if (v3user != null && !v3user.isBlank()) {
+            vacm.addGroup(SecurityModel.SECURITY_MODEL_USM,
+                    new OctetString(v3user),
+                    new OctetString("v3group"),
+                    StorageType.nonVolatile);
+        }
 
         vacm.addGroup(SecurityModel.SECURITY_MODEL_TSM,
                 new OctetString(""),
@@ -164,7 +168,7 @@ public class SnmpAgentV3 {
                 StorageType.nonVolatile);
 
         vacm.addAccess(new OctetString("v1v2group"),
-                context,
+                new OctetString(context),
                 SecurityModel.SECURITY_MODEL_ANY,
                 SecurityLevel.NOAUTH_NOPRIV,
                 MutableVACM.VACM_MATCH_EXACT,
@@ -174,7 +178,7 @@ public class SnmpAgentV3 {
                 StorageType.nonVolatile);
 
         vacm.addAccess(new OctetString("v3group"),
-                context,
+                new OctetString(context),
                 SecurityModel.SECURITY_MODEL_USM,
                 SecurityLevel.AUTH_NOPRIV,
                 MutableVACM.VACM_MATCH_EXACT,
@@ -184,7 +188,7 @@ public class SnmpAgentV3 {
                 StorageType.nonVolatile);
 
         vacm.addAccess(new OctetString("v3group"),
-                context,
+                new OctetString(context),
                 SecurityModel.SECURITY_MODEL_TSM,
                 SecurityLevel.AUTH_PRIV,
                 MutableVACM.VACM_MATCH_EXACT,
@@ -235,7 +239,7 @@ public class SnmpAgentV3 {
             log.error("AgentConfigManager is not initialized.");
             return;
         }
-        server.addContext(context);
+        server.addContext(new OctetString(context));
         agentConfigManager.initialize();
         agentConfigManager.setupProxyForwarder();
         agentConfigManager.registerShutdownHook();
@@ -252,13 +256,15 @@ public class SnmpAgentV3 {
     protected void addUsmUser() {
         USM usm = agentConfigManager.getUsm();
         usm.setEngineDiscoveryEnabled(true);
-        usm.addUser(new UsmUser(
-                new OctetString(v3user),
-                AuthMD5.ID,
-                new OctetString(v3AuthPassword),
-                PrivDES.ID,
-                new OctetString(v3PrivPassword)
-        ));
+        if (v3user != null && !v3user.isBlank()) {
+            usm.addUser(new UsmUser(
+                    new OctetString(v3user),
+                    AuthMD5.ID,
+                    new OctetString(v3AuthPassword),
+                    PrivDES.ID,
+                    new OctetString(v3PrivPassword)
+            ));
+        }
     }
 
     protected void addV2Commutity() {
@@ -266,9 +272,9 @@ public class SnmpAgentV3 {
             agentConfigManager.getSnmpCommunityMIB().addSnmpCommunityEntry(
                     new OctetString("public2public"),
                     new OctetString(community),
-                    context,
+                    v2security,
                     ownEngineId,
-                    context,
+                    new OctetString(context),
                     new OctetString(),
                     StorageType.nonVolatile);
         }
