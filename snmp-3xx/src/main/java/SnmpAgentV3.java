@@ -1,13 +1,7 @@
 
-import com.example.Modules;
 import org.snmp4j.*;
-import org.snmp4j.agent.AgentConfigManager;
-import org.snmp4j.agent.DefaultMOServer;
-import org.snmp4j.agent.DuplicateRegistrationException;
-import org.snmp4j.agent.MOServer;
+import org.snmp4j.agent.*;
 import org.snmp4j.agent.io.MOInputFactory;
-import org.snmp4j.agent.mo.DefaultMOFactory;
-import org.snmp4j.agent.mo.MOFactory;
 import org.snmp4j.agent.mo.snmp.StorageType;
 import org.snmp4j.agent.mo.snmp.VacmMIB;
 import org.snmp4j.agent.mo.snmp.dh.DHKickstartParameters;
@@ -50,7 +44,6 @@ public class SnmpAgentV3 {
 
     private AgentConfigManager agentConfigManager;
     private DefaultMOServer server;
-    private Modules modules;
     private OctetString ownEngineId;
 
     private String address;
@@ -245,12 +238,7 @@ public class SnmpAgentV3 {
         agentConfigManager.registerShutdownHook();
         addUsmUser();
         addV2Commutity();
-        registerMIBs();
         agentConfigManager.run();
-    }
-
-    protected MOFactory getFactory() {
-        return DefaultMOFactory.getInstance();
     }
 
     protected void addUsmUser() {
@@ -280,14 +268,11 @@ public class SnmpAgentV3 {
         }
     }
 
-    protected void registerMIBs() {
+    public void registerManagedObject(ManagedObject<?> mo) {
         try {
-            if (modules == null) {
-                modules = new Modules();
-            }
-            modules.registerMOs(server, null);
-        } catch (DuplicateRegistrationException e) {
-            log.debug("Duplicate registration: " + e.getMessage());
+            server.register(mo, null);
+        } catch (DuplicateRegistrationException ex) {
+            throw new RuntimeException(ex);
         }
     }
 }

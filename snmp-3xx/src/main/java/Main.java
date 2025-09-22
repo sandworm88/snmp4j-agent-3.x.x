@@ -1,7 +1,11 @@
 
+import org.snmp4j.agent.mo.MOAccessImpl;
+import org.snmp4j.agent.mo.MOScalar;
 import org.snmp4j.log.ConsoleLogFactory;
 import org.snmp4j.log.LogFactory;
 import org.snmp4j.log.LogLevel;
+import org.snmp4j.smi.Integer32;
+import org.snmp4j.smi.OID;
 
 public class Main {
 
@@ -18,5 +22,9 @@ public class Main {
         SnmpAgentV3 v3agent = SnmpAgentV3.createSnmpAgentV3("udp:0.0.0.0/4700", "public", "context", "user",
                 "userAuthPassword", "userPrivPassword");
         v3agent.run();
+
+        OID SAMPLE_OID = new OID(".1.3.6.1.4.1.5380.1.16.1.1.0");
+        var sampleMib = new MOScalar<>(SAMPLE_OID, MOAccessImpl.ACCESS_READ_WRITE, new Integer32(1234567));
+        v3agent.registerManagedObject(sampleMib);
     }
 }
