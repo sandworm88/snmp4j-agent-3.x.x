@@ -19,9 +19,9 @@ public class Main {
     // 2. snmpget -v3 -n context -u user -l authNoPriv -a MD5 -A userAuthPassword 127.0.0.1:4700 1.3.6.1.4.1.5380.1.16.1.1.0
     // 3. snmpget -v2c -c public   127.0.0.1:4700 1.3.6.1.4.1.5380.1.16.1.1.0
     public static void main(String[] args) {
-        SnmpAgentV3 v3agent = SnmpAgentV3.createSnmpAgentV3("udp:0.0.0.0/4700", "public", "context", "user",
+        SnmpV3Agent v3agent = new SnmpV3Agent("udp:0.0.0.0/4700", "public", "context", "user",
                 "userAuthPassword", "userPrivPassword");
-        v3agent.run();
+        v3agent.start();
 
         OID SAMPLE_OID = new OID(".1.3.6.1.4.1.5380.1.16.1.1.0");
         var sampleMib = new MOScalar<>(SAMPLE_OID, MOAccessImpl.ACCESS_READ_WRITE, new Integer32(1234567));

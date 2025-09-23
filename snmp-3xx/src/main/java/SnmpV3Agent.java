@@ -2,6 +2,7 @@
 import org.snmp4j.*;
 import org.snmp4j.agent.*;
 import org.snmp4j.agent.io.MOInputFactory;
+import org.snmp4j.agent.mo.MOScalar;
 import org.snmp4j.agent.mo.snmp.StorageType;
 import org.snmp4j.agent.mo.snmp.VacmMIB;
 import org.snmp4j.agent.mo.snmp.dh.DHKickstartParameters;
@@ -14,10 +15,7 @@ import org.snmp4j.log.LogFactory;
 import org.snmp4j.mp.CounterSupport;
 import org.snmp4j.mp.MPv3;
 import org.snmp4j.security.*;
-import org.snmp4j.smi.Address;
-import org.snmp4j.smi.GenericAddress;
-import org.snmp4j.smi.OID;
-import org.snmp4j.smi.OctetString;
+import org.snmp4j.smi.*;
 import org.snmp4j.transport.TransportMappings;
 import org.snmp4j.util.SnmpConfigurator;
 import org.snmp4j.util.ThreadPool;
@@ -33,12 +31,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
-public class SnmpAgentV3 {
+public class SnmpV3Agent {
+
     static {
         SNMP4JSettings.setSecretLoggingEnabled(false);
         SNMP4JSettings.setReportSecurityLevelStrategy(SNMP4JSettings.ReportSecurityLevelStrategy.standard);
+        SNMP4JSettings.setExtensibilityEnabled(true);
+        SecurityProtocols.getInstance().addDefaultProtocols();
     }
-    private static final LogAdapter log = LogFactory.getLogger(SnmpAgentV3.class);
+    private static final LogAdapter log = LogFactory.getLogger(SnmpV3Agent.class);
 
     private final OctetString v2security = new OctetString("v2security");
 
@@ -53,15 +54,7 @@ public class SnmpAgentV3 {
     private String v3AuthPassword;
     private String v3PrivPassword;
 
-    public static final SnmpAgentV3 createSnmpAgentV3(String address, String community, String context,
-                                                      String v3user, String v3AuthPassword, String v3PrivPassword) {
-        SnmpAgentV3 snmpAgentV3 = new SnmpAgentV3(address, community, context, v3user, v3AuthPassword, v3PrivPassword);
-        SNMP4JSettings.setExtensibilityEnabled(true);
-        SecurityProtocols.getInstance().addDefaultProtocols();
-        return snmpAgentV3;
-    }
-
-    private SnmpAgentV3(String address, String community, String context, String v3user, String v3AuthPassword, String v3PrivPassword) {
+    public SnmpV3Agent(String address, String community, String context, String v3user, String v3AuthPassword, String v3PrivPassword) {
         this.address = address;
         this.community = community;
         this.context = context;
@@ -227,7 +220,7 @@ public class SnmpAgentV3 {
         }
     }
 
-    public void run() {
+    public void start() {
         if (agentConfigManager == null) {
             log.error("AgentConfigManager is not initialized.");
             return;
@@ -274,5 +267,41 @@ public class SnmpAgentV3 {
         } catch (DuplicateRegistrationException ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    public void registerOID(String oid, Long initValue) throws SnmpException {
+        log.info("registerOID    [" + oid + "] = " + initValue);
+        if (oid == null || initValue == null) {
+            throw new NullPointerException();
+        }
+        try {
+            if (DefaultMOServer.getValue(server, null, new OID(oid)) == null) {
+                MOScalar<?> mo = MOCreator.createCounter(oid, initValue);
+                server.register(mo, null);
+            }
+        } catch (DuplicateRegistrationException ex) {
+            log.error("Duplicate Managment object", ex);
+            throw new SnmpException(ex);
+        }
+    }
+
+    public void unregisterOID(String oid) {
+        log.info("unregisterOID  [" + oid + "]");
+        if (oid == null) {
+            throw new NullPointerException();
+        }
+        server.unregister(server.getManagedObject(new OID(oid), null), null);
+    }
+
+    public boolean updateOIDvalue(String oid, Long value) {
+        log.info("updateOIDvalue [" + oid + "] = " + value);
+        if (oid == null || value == null) {
+            throw new NullPointerException();
+        }
+        return DefaultMOServer.setValue(server, null, new VariableBinding(new OID(oid), new Counter64(value)));
+    }
+
+    public boolean checkOID(String oid) {
+        return server.getManagedObject(new OID(oid), null) != null;
     }
 }
