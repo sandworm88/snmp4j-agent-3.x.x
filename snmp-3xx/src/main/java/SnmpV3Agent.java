@@ -79,6 +79,64 @@ public class SnmpV3Agent {
         setupAgent(moServers, engineBootsCounterFile, ownEngineId, listenAddress, configurationFactory, dhKickstartInfoPath);
     }
 
+    public void start() {
+        if (agentConfigManager == null) {
+            log.error("AgentConfigManager is not initialized.");
+            return;
+        }
+        server.addContext(new OctetString(context));
+        agentConfigManager.initialize();
+        agentConfigManager.setupProxyForwarder();
+        agentConfigManager.registerShutdownHook();
+        addUsmUser();
+        addV2Commutity();
+        agentConfigManager.run();
+    }
+
+    public void registerManagedObject(ManagedObject<?> mo) {
+        try {
+            server.register(mo, null);
+        } catch (DuplicateRegistrationException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    public void registerOID(String oid, Long initValue) throws SnmpException {
+        log.info("registerOID    [" + oid + "] = " + initValue);
+        if (oid == null || initValue == null) {
+            throw new NullPointerException();
+        }
+        try {
+            if (DefaultMOServer.getValue(server, null, new OID(oid)) == null) {
+                MOScalar<?> mo = MOCreator.createCounter(oid, initValue);
+                server.register(mo, null);
+            }
+        } catch (DuplicateRegistrationException ex) {
+            log.error("Duplicate Managment object", ex);
+            throw new SnmpException(ex);
+        }
+    }
+
+    public void unregisterOID(String oid) {
+        log.info("unregisterOID  [" + oid + "]");
+        if (oid == null) {
+            throw new NullPointerException();
+        }
+        server.unregister(server.getManagedObject(new OID(oid), null), null);
+    }
+
+    public boolean updateOIDvalue(String oid, Long value) {
+        log.info("updateOIDvalue [" + oid + "] = " + value);
+        if (oid == null || value == null) {
+            throw new NullPointerException();
+        }
+        return DefaultMOServer.setValue(server, null, new VariableBinding(new OID(oid), new Counter64(value)));
+    }
+
+    public boolean checkOID(String oid) {
+        return server.getManagedObject(new OID(oid), null) != null;
+    }
+
     private void setupAgent(MOServer[] moServers, EngineBootsProvider engineBootsProvider, OctetString engineID,
                             List<String> listenAddress, MOInputFactory configurationFactory, String dhKickstartInfoPath) {
         try {
@@ -220,20 +278,6 @@ public class SnmpV3Agent {
         }
     }
 
-    public void start() {
-        if (agentConfigManager == null) {
-            log.error("AgentConfigManager is not initialized.");
-            return;
-        }
-        server.addContext(new OctetString(context));
-        agentConfigManager.initialize();
-        agentConfigManager.setupProxyForwarder();
-        agentConfigManager.registerShutdownHook();
-        addUsmUser();
-        addV2Commutity();
-        agentConfigManager.run();
-    }
-
     protected void addUsmUser() {
         USM usm = agentConfigManager.getUsm();
         usm.setEngineDiscoveryEnabled(true);
@@ -259,49 +303,5 @@ public class SnmpV3Agent {
                     new OctetString(),
                     StorageType.nonVolatile);
         }
-    }
-
-    public void registerManagedObject(ManagedObject<?> mo) {
-        try {
-            server.register(mo, null);
-        } catch (DuplicateRegistrationException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-
-    public void registerOID(String oid, Long initValue) throws SnmpException {
-        log.info("registerOID    [" + oid + "] = " + initValue);
-        if (oid == null || initValue == null) {
-            throw new NullPointerException();
-        }
-        try {
-            if (DefaultMOServer.getValue(server, null, new OID(oid)) == null) {
-                MOScalar<?> mo = MOCreator.createCounter(oid, initValue);
-                server.register(mo, null);
-            }
-        } catch (DuplicateRegistrationException ex) {
-            log.error("Duplicate Managment object", ex);
-            throw new SnmpException(ex);
-        }
-    }
-
-    public void unregisterOID(String oid) {
-        log.info("unregisterOID  [" + oid + "]");
-        if (oid == null) {
-            throw new NullPointerException();
-        }
-        server.unregister(server.getManagedObject(new OID(oid), null), null);
-    }
-
-    public boolean updateOIDvalue(String oid, Long value) {
-        log.info("updateOIDvalue [" + oid + "] = " + value);
-        if (oid == null || value == null) {
-            throw new NullPointerException();
-        }
-        return DefaultMOServer.setValue(server, null, new VariableBinding(new OID(oid), new Counter64(value)));
-    }
-
-    public boolean checkOID(String oid) {
-        return server.getManagedObject(new OID(oid), null) != null;
     }
 }
