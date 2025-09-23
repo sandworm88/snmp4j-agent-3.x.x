@@ -1,4 +1,6 @@
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snmp4j.*;
 import org.snmp4j.agent.*;
 import org.snmp4j.agent.io.MOInputFactory;
@@ -10,8 +12,6 @@ import org.snmp4j.agent.mo.snmp.dh.DHKickstartParametersImpl;
 import org.snmp4j.agent.security.MutableVACM;
 import org.snmp4j.cfg.EngineBootsCounterFile;
 import org.snmp4j.cfg.EngineBootsProvider;
-import org.snmp4j.log.LogAdapter;
-import org.snmp4j.log.LogFactory;
 import org.snmp4j.mp.CounterSupport;
 import org.snmp4j.mp.MPv3;
 import org.snmp4j.security.*;
@@ -39,7 +39,7 @@ public class SnmpV3Agent {
         SNMP4JSettings.setExtensibilityEnabled(true);
         SecurityProtocols.getInstance().addDefaultProtocols();
     }
-    private static final LogAdapter log = LogFactory.getLogger(SnmpV3Agent.class);
+    private static final Logger log = LoggerFactory.getLogger(SnmpV3Agent.class);
 
     private final OctetString v2security = new OctetString("v2security");
 
@@ -94,6 +94,7 @@ public class SnmpV3Agent {
     }
 
     public void registerManagedObject(ManagedObject<?> mo) {
+        log.info("registerMO     [" + mo.find(mo.getScope()) + "]");
         try {
             server.register(mo, null);
         } catch (DuplicateRegistrationException ex) {

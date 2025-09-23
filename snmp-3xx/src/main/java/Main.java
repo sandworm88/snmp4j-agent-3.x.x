@@ -1,17 +1,15 @@
 
 import org.snmp4j.agent.mo.MOAccessImpl;
 import org.snmp4j.agent.mo.MOScalar;
-import org.snmp4j.log.ConsoleLogFactory;
-import org.snmp4j.log.LogFactory;
-import org.snmp4j.log.LogLevel;
 import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.OID;
 
 public class Main {
 
     static {
-        LogFactory.setLogFactory(new ConsoleLogFactory());
-        LogFactory.getLogFactory().getRootLogger().setLogLevel(LogLevel.ALL);
+        // for snmp4j debugging
+        // LogFactory.setLogFactory(new ConsoleLogFactory());
+        // LogFactory.getLogFactory().getRootLogger().setLogLevel(LogLevel.INFO);
     }
 
     // Testing:

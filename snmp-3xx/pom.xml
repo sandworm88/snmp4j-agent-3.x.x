@@ -22,12 +22,12 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.32</version> <!-- Adjust version as needed -->
+            <version>2.0.17</version> <!-- Adjust version as needed -->
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.3</version> <!-- Adjust version as needed -->
+            <version>1.5.18</version> <!-- Adjust version as needed -->
         </dependency>
 
     </dependencies>
