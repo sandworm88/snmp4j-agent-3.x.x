@@ -26,10 +26,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 public class SnmpV3Agent {
 
@@ -93,6 +90,10 @@ public class SnmpV3Agent {
         agentConfigManager.run();
     }
 
+    public void stop() {
+        agentConfigManager.shutdown();
+    }
+
     public void registerManagedObject(ManagedObject<?> mo) {
         log.info("registerMO     [" + mo.find(mo.getScope()) + "]");
         try {
@@ -136,6 +137,20 @@ public class SnmpV3Agent {
 
     public boolean checkOID(String oid) {
         return server.getManagedObject(new OID(oid), null) != null;
+    }
+
+    public Map<String, String> localSnmpWalk(String oidText) {
+        OID rootOid = new OID(oidText);
+        Map<String, String> snmpMap = new LinkedHashMap<>();
+        snmpMap.put("systemMaintenance.label.snmp.oid", rootOid.toString());
+        for (var iter = server.iterator(); iter.hasNext();) {
+            Map.Entry<MOScope, ManagedObject<?>> nextElement = iter.next();
+            if (nextElement.getValue() instanceof MOScalar<?> moScalar && moScalar.getOid().startsWith(rootOid)) {
+                String value = moScalar.getValue() == null ? "null" : moScalar.getValue().toString();
+                snmpMap.put(moScalar.getOid().toString(), value);
+            }
+        }
+        return snmpMap;
     }
 
     private void setupAgent(MOServer[] moServers, EngineBootsProvider engineBootsProvider, OctetString engineID,
@@ -200,17 +215,14 @@ public class SnmpV3Agent {
                 new OctetString("v1v2group"),
                 StorageType.nonVolatile);
 
-        if (v3user != null && !v3user.isBlank()) {
+        if (v3user != null && !v3user.isBlank()
+                && v3AuthPassword != null && !v3AuthPassword.isBlank()
+                && v3PrivPassword != null && !v3PrivPassword.isBlank()) {
             vacm.addGroup(SecurityModel.SECURITY_MODEL_USM,
                     new OctetString(v3user),
                     new OctetString("v3group"),
                     StorageType.nonVolatile);
         }
-
-        vacm.addGroup(SecurityModel.SECURITY_MODEL_TSM,
-                new OctetString(""),
-                new OctetString("v3group"),
-                StorageType.nonVolatile);
 
         vacm.addAccess(new OctetString("v1v2group"),
                 new OctetString(context),
@@ -230,16 +242,6 @@ public class SnmpV3Agent {
                 new OctetString("fullReadView"),
                 new OctetString("fullWriteView"),
                 new OctetString("fullNotifyView"),
-                StorageType.nonVolatile);
-
-        vacm.addAccess(new OctetString("v3group"),
-                new OctetString(context),
-                SecurityModel.SECURITY_MODEL_TSM,
-                SecurityLevel.AUTH_PRIV,
-                MutableVACM.VACM_MATCH_EXACT,
-                new OctetString("fullReadView"),
-                new OctetString("fullWriteView"),
-                null,
                 StorageType.nonVolatile);
 
         vacm.addViewTreeFamily(new OctetString("fullReadView"),
@@ -282,7 +284,9 @@ public class SnmpV3Agent {
     protected void addUsmUser() {
         USM usm = agentConfigManager.getUsm();
         usm.setEngineDiscoveryEnabled(true);
-        if (v3user != null && !v3user.isBlank()) {
+        if (v3user != null && !v3user.isBlank()
+                && v3AuthPassword != null && !v3AuthPassword.isBlank()
+                && v3PrivPassword != null && !v3PrivPassword.isBlank()) {
             usm.addUser(new UsmUser(
                     new OctetString(v3user),
                     AuthMD5.ID,
